@@ -123,12 +123,18 @@ jobs:
             --stage "$STAGE" \
             --affected-since "$BASE_REF" \
             --with-deps \
-            --endpoint http://localhost:4566
+            --endpoint http://localhost:4566 \
+            --runtime-endpoint http://172.17.0.1:4566
+        # 172.17.0.1 is the Docker bridge gateway on Linux runners: how Lambda and
+        # ECS containers that Floci starts reach Floci's published port.
       - name: End-to-end tests for the affected apps
         env:
           AFFECTED_APPS: ${{ needs.plan.outputs.apps }}
           AWS_ENDPOINT_URL: http://localhost:4566
           FLOCI_ENDPOINT: http://localhost:4566
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: eu-west-2
         run: |
           specs="$(jq -r '.[] | "apps/\(.)::"' <<<"$AFFECTED_APPS" | tr '\n' ' ')"
           pants --tag=e2e test $specs

@@ -42,8 +42,18 @@ args = ["-q"]
 execution_slot_var = "PANTS_EXECUTION_SLOT"
 
 [test]
-# Integration tests that need Floci are tagged "floci" and skipped by default.
-extra_env_vars = ["AWS_ENDPOINT_URL", "FLOCI_ENDPOINT", "STAGE"]
+# Tags: "floci" = needs a running Floci, "e2e" = needs a deployed stage.
+# These env vars let those tests reach it; plain unit tests ignore them.
+extra_env_vars = [
+  "AWS_ENDPOINT_URL",
+  "FLOCI_ENDPOINT",
+  "STAGE",
+  "AWS_DEFAULT_REGION",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "PACT_UPDATE",
+  "REPO_ROOT",
+]
 
 [ruff]
 config = "ruff.toml"

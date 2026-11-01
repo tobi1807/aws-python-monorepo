@@ -1,5 +1,5 @@
 name: Setup toolchain
-description: Python 3.13, Node 22, Pants, and the Pants remote cache backed by the GitHub Actions cache service.
+description: Python 3.13, Node 22, Pants (with its local caches restored), and the GitHub Actions remote cache when the runner supports it.
 
 inputs:
   deploy-tools:
@@ -23,15 +23,28 @@ runs:
         gha-cache-key: pants-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pants.toml') }}
         named-caches-hash: ${{ hashFiles('3rdparty/python/default.lock') }}
 
-    # ACTIONS_CACHE_URL and ACTIONS_RUNTIME_TOKEN are only visible to JavaScript
-    # actions, not to `run:` steps, so export them as Pants options from here.
-    - name: Point Pants at the GitHub Actions cache
+    # Pants' `experimental-github-actions-cache` provider speaks the legacy
+    # Actions cache API (ACTIONS_CACHE_URL). Runners on GitHub's v2 cache
+    # service don't expose that URL, and Pants refuses to start with an empty
+    # remote store address, so only enable remote caching when it's present.
+    # Without it, CI still gets the named/lmdb caches that init-pants saves.
+    # ACTIONS_* values are only visible to JavaScript actions, hence github-script.
+    - name: Configure Pants (remote cache when available)
       uses: actions/github-script@v7
       with:
         script: |
-          core.exportVariable('PANTS_REMOTE_STORE_ADDRESS', process.env.ACTIONS_CACHE_URL);
-          core.exportVariable('PANTS_REMOTE_OAUTH_BEARER_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
           core.exportVariable('PANTS_CONFIG_FILES', 'pants.ci.toml');
+          const url = process.env.ACTIONS_CACHE_URL;
+          if (url) {
+            core.exportVariable('PANTS_REMOTE_PROVIDER', 'experimental-github-actions-cache');
+            core.exportVariable('PANTS_REMOTE_STORE_ADDRESS', url);
+            core.exportVariable('PANTS_REMOTE_OAUTH_BEARER_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
+            core.exportVariable('PANTS_REMOTE_CACHE_READ', 'true');
+            core.exportVariable('PANTS_REMOTE_CACHE_WRITE', 'true');
+            core.info('Pants remote cache: GitHub Actions cache');
+          } else {
+            core.notice('ACTIONS_CACHE_URL not set (Actions cache v2): Pants remote cache disabled; using local caches only.');
+          }
 
     - name: Install deploy tooling
       if: inputs.deploy-tools == 'true'
