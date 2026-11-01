@@ -51,6 +51,21 @@ jobs:
       - name: Lint, typecheck, test (affected)
         run: tools/ci-pants.sh "$BASE_REF" lint check test --tag=-floci --tag=-e2e
 
+  # Build artifacts and synthesize the affected CDK apps without deploying:
+  # catches broken infra in ~1 minute, before the slower PR-stage deploy finishes.
+  synth:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        with:
+          deploy-tools: "true"
+      - run: python3 tools/deploy.py --stage "pr-${{ github.event.number || 'mq' }}" --affected-since "$BASE_REF" --synth-only
+
   # Integration tests: a fresh Floci per job.
   floci-tests:
     runs-on: ubuntu-latest

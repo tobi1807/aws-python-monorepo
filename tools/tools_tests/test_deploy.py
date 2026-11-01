@@ -225,8 +225,11 @@ def test_execute_runs_everything_in_order(repo: Path, monkeypatch: pytest.Monkey
         ("platform", 1, "deployed"),
         ("orders", 2, "deployed"),
     ]
-    assert len(runner.matching("pants package")) == 1
-    assert runner.matching("pants package")[0] == "pants package apps/platform:: apps/orders::"
+    assert len(runner.matching("pants --filter-target-type=-docker_image package")) == 1
+    assert (
+        runner.matching("pants --filter-target-type=-docker_image package")[0]
+        == "pants --filter-target-type=-docker_image package apps/platform:: apps/orders::"
+    )
     assert len(runner.matching("bootstrap")) == 1
     deploys = runner.matching("cdklocal deploy")
     assert [d.split()[4] for d in deploys] == ["cdk.out/platform", "cdk.out/orders"]
@@ -278,7 +281,7 @@ def test_synth_failure_is_failure(repo: Path, monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_build_failure_deploys_nothing(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    runner = FakeRunner({"pants package": (1, "")})
+    runner = FakeRunner({"pants --filter-target-type=-docker_image package": (1, "")})
     monkeypatch.setattr(deploy, "run_cmd", runner)
     plan = plan_for(repo, "--stage", "x", "--apps", "orders", "--with-deps")
 
@@ -307,7 +310,7 @@ def test_dry_run_runs_nothing(
     assert code == 0
     assert "wave 1: platform (dependency)" in out
     assert "wave 2: orders" in out
-    assert "pants package apps/platform:: apps/orders::" in out
+    assert "pants --filter-target-type=-docker_image package apps/platform:: apps/orders::" in out
     assert "cdklocal bootstrap" in out
     assert out.index("cdk.out/platform") < out.index("cdk.out/orders")
     assert "planned" in out
@@ -351,3 +354,17 @@ def test_summary_table_alignment() -> None:
     assert lines[0].split() == ["app", "wave", "result", "seconds", "detail"]
     assert lines[2].split()[:4] == ["platform", "1", "deployed", "12.3"]
     assert lines[3].split()[:4] == ["orders", "2", "skipped", "0.5"]
+
+
+def test_synth_only_never_bootstraps_or_deploys(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runner = FakeRunner()
+    monkeypatch.setattr(deploy, "run_cmd", runner)
+    plan = plan_for(repo, "--stage", "pr-1", "--apps", "orders", "--with-deps", "--synth-only")
+
+    assert [r.status for r in deploy.execute(plan)] == ["synthesized", "synthesized"]
+    assert runner.matching("synth") != []
+    assert runner.matching("bootstrap") == []
+    assert runner.matching(" deploy ") == []
+    assert runner.matching("record") == []

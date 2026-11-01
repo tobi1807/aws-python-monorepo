@@ -74,11 +74,11 @@ tells you which test layer must cover what once real AWS exists.
 
 | # | Date | Result | Decision |
 |---|------|--------|----------|
-| 1 | | | |
+| 1 | 2026-11-01 | `contracts/fulfilment.py` → fulfilment, notifications · `contracts/orders.py` → orders, fulfilment, invoicing · `cdk_constructs/wiring.py` → 4 apps · pact file → both sides · `runtime/flags.py` → **5 apps, cut to 1 (orders)** after removing testkit's imports of every runtime module | Keep test helpers import-free of optional libs; check fan-out whenever a shared lib grows |
 | 2 | | | |
 | 3 | | | |
 | 4 | | | |
 | 5 | | | |
-| 6 | | | |
+| 6 | 2026-11-01 | Every Lambda zip is ~20 MB (mostly boto3/botocore, which the runtime already ships). Cold start not measured yet | Try excluding boto3 from Lambda zips |
 | 7 | | | |
-| 8 | | | |
+| 8 | 2026-11-01 | 6–23 s per app (wave of 4 in parallel, cold jsii); all six apps build + synth in ~45 s | One CDK app per service holds up |
