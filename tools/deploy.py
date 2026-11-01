@@ -333,7 +333,11 @@ def docker_context_files(app: str, root: Path) -> tuple[Path, list[Path]] | None
 
 
 def stage_docker_contexts(plan: Plan) -> list[str]:
-    """Copy Dockerfile + built pexes to ``dist/docker/<app>/`` for CDK's image assets."""
+    """Copy Dockerfile + built pexes to ``dist/docker/<app>/`` for CDK's image assets.
+
+    Pexes keep Pants' layout (``apps.<app>.src.<pkg>/<name>.pex``) so the same
+    Dockerfile works for ``pants package`` (docker_image target) and for CDK.
+    """
     staged = []
     for app in plan.apps:
         found = docker_context_files(app, plan.root)
@@ -347,8 +351,10 @@ def stage_docker_contexts(plan: Plan) -> list[str]:
         else:
             shutil.rmtree(target, ignore_errors=True)
             target.mkdir(parents=True)
-            for source in (dockerfile, *pexes):
-                shutil.copy2(source, target / source.name)
+            shutil.copy2(dockerfile, target / dockerfile.name)
+            for pex in pexes:
+                (target / pex.parent.name).mkdir(exist_ok=True)
+                shutil.copy2(pex, target / pex.parent.name / pex.name)
             log(f"[{app}] staged docker context in dist/docker/{app}/")
         staged.append(app)
     return staged

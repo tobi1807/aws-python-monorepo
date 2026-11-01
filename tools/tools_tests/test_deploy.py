@@ -200,8 +200,10 @@ def test_stage_docker_contexts(repo: Path) -> None:
 
     assert deploy.stage_docker_contexts(plan) == ["orders"]
 
-    staged = sorted(p.name for p in (repo / "dist" / "docker" / "orders").iterdir())
-    assert staged == ["Dockerfile", "worker.pex"]
+    context = repo / "dist" / "docker" / "orders"
+    staged = sorted(str(p.relative_to(context)) for p in context.rglob("*") if p.is_file())
+    # Same layout as Pants' docker_image build context, so one Dockerfile serves both.
+    assert staged == ["Dockerfile", "apps.orders.src.orders/worker.pex"]
     assert not (repo / "dist" / "docker" / "catalog").exists()
 
 

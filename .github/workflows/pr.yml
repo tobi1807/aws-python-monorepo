@@ -117,6 +117,11 @@ jobs:
         with:
           deploy-tools: "true"
       - run: tools/wait-for-floci.sh http://localhost:4566
+      # Lambdas and the ECS task are ARM64 (what we'd run on real AWS); GitHub's
+      # runners are x86, so Floci needs QEMU to run those containers.
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
       - name: Deploy affected apps and their dependencies
         run: |
           python3 tools/deploy.py \
