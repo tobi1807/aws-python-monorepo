@@ -1,0 +1,7 @@
+# Tool config only. Dependencies live in 3rdparty/python/requirements.txt,
+# and Pants owns builds — there is no installable root package.
+
+[tool.pyright]
+pythonVersion = "3.13"
+typeCheckingMode = "standard"
+reportMissingTypeStubs = false

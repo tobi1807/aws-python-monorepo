@@ -1,0 +1,11 @@
+dist/
+cdk.out/
+.pants.d/
+.pids/
+.venv*/
+__pycache__/
+*.pyc
+node_modules/
+pacts/*.json
+!pacts/.gitkeep
+.floci-data/

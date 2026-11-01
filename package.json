@@ -1,0 +1,9 @@
+{
+  "name": "aws-python-monorepo-tooling",
+  "private": true,
+  "description": "Pins the CDK CLI for every app. No JavaScript lives in this repo.",
+  "devDependencies": {
+    "aws-cdk": "2.1147.0",
+    "aws-cdk-local": "^3.0.0"
+  }
+}

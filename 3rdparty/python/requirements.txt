@@ -1,0 +1,16 @@
+# One resolve for the whole monorepo: every app and lib runs the same versions.
+# Regenerate the lockfile after editing: pants generate-lockfiles
+
+# Runtime
+aws-lambda-powertools[parser]>=3.20,<4
+boto3>=1.40,<2
+pydantic[email]>=2.10,<3
+
+# Infrastructure (CDK)
+aws-cdk-lib>=2.200,<3
+constructs>=10.4,<11
+
+# Testing
+pytest>=8.3,<9  # Pants 2.31 runner entry point needs pytest 8.x
+moto[dynamodb,events,s3,ssm,secretsmanager,sqs,stepfunctions]>=5.1,<6
+pact-python>=3.0,<5
