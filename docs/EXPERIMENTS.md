@@ -76,8 +76,8 @@ tells you which test layer must cover what once real AWS exists.
 |---|------|--------|----------|
 | 1 | 2026-11-01 | `contracts/fulfilment.py` → fulfilment, notifications · `contracts/orders.py` → orders, fulfilment, invoicing · `cdk_constructs/wiring.py` → 4 apps · pact file → both sides · `runtime/flags.py` → **5 apps, cut to 1 (orders)** after removing testkit's imports of every runtime module | Keep test helpers import-free of optional libs; check fan-out whenever a shared lib grows |
 | 2 | | | |
-| 3 | | | |
-| 4 | | | |
+| 3 | 2026-11-01 | GitHub Actions remote cache is **unusable**: Pants' `experimental-github-actions-cache` provider uses GitHub's legacy cache API, which now returns HTTP 400 for every read/write. CI relies on init-pants' local cache restore | Benchmark S3-backed bazel-remote (or a hosted REAPI cache) as the remote cache |
+| 4 | 2026-11-01 | CI on GitHub runners against real Floci: DynamoDB, EventBridge → SQS, SSM, Secrets Manager, S3 integration tests all pass. AppSync `EvaluateMappingTemplate` (VTL unit evaluation) is **not implemented** (UnknownOperationException). Deploy-side results pending | VTL tests self-skip on Floci; cover VTL via deployed-API e2e tests instead |
 | 5 | | | |
 | 6 | 2026-11-01 | Every Lambda zip is ~20 MB (mostly boto3/botocore, which the runtime already ships). Cold start not measured yet | Try excluding boto3 from Lambda zips |
 | 7 | | | |

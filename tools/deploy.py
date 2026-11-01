@@ -276,6 +276,9 @@ def deploy_env(plan: Plan) -> dict[str, str]:
     if plan.target == "floci" and plan.endpoint:
         env.update(
             AWS_ENDPOINT_URL=plan.endpoint,
+            # cdklocal refuses to run without an explicit S3 endpoint (it uses
+            # path-style S3 against it for asset publishing).
+            AWS_ENDPOINT_URL_S3=plan.endpoint,
             AWS_ACCESS_KEY_ID="test",
             AWS_SECRET_ACCESS_KEY="test",
             AWS_DEFAULT_REGION=REGION,

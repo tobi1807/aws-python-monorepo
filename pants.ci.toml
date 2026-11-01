@@ -1,6 +1,5 @@
 # Layered on top of pants.toml in CI: PANTS_CONFIG_FILES=pants.ci.toml.
-# Remote caching is switched on by .github/actions/setup only when the runner
-# exposes a cache endpoint Pants can use (see the comment there).
+# No remote cache in CI yet: see .github/actions/setup and docs/EXPERIMENTS.md #3.
 [GLOBAL]
 colors = true
 
