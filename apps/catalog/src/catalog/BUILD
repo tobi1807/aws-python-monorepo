@@ -6,5 +6,5 @@ python_aws_lambda_function(
     name="field_resolvers",
     handler="field_resolvers.py:handler",
     runtime="python3.13",
-    architecture="arm64",
+    architecture="x86_64",
 )

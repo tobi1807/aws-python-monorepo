@@ -242,7 +242,7 @@ def test_lambdas_are_service_functions_with_stage_env() -> None:
             {
                 "FunctionName": f"prod-fulfilment-{name}",
                 "Runtime": "python3.13",
-                "Architectures": ["arm64"],
+                "Architectures": ["x86_64"],
                 "Environment": {
                     "Variables": Match.object_like(
                         {"STAGE": "prod", "AWS_ENDPOINT_URL": Match.any_value()}

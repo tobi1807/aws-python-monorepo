@@ -70,7 +70,7 @@ Source roots (pants.toml): `apps/*/src`, `apps/*/infra`, `apps/*/tests`,
 7. **Tests.** Unit tests use moto via a `conftest.py` fixture. Infra tests set
    `CDK_STUB_ASSETS=1` and use `aws_cdk.assertions.Template`. Integration tests
    use `testkit.aws.floci_endpoint` and are tagged `floci`.
-8. **Lambda targets.** `python_aws_lambda_function(name=..., handler="<file>.py:handler", runtime="python3.13", architecture="arm64")`.
+8. **Lambda targets.** `python_aws_lambda_function(name=..., handler="<file>.py:handler", runtime="python3.13", architecture="x86_64")`.
    CDK: `ServiceFunction(..., target_dir="apps/<app>/src/<app>", target_name="<name>")`.
 
 ## Running things

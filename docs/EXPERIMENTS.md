@@ -79,6 +79,6 @@ tells you which test layer must cover what once real AWS exists.
 | 3 | 2026-11-01 | GitHub Actions remote cache is **unusable**: Pants' `experimental-github-actions-cache` provider uses GitHub's legacy cache API, which now returns HTTP 400 for every read/write. CI relies on init-pants' local cache restore | Benchmark S3-backed bazel-remote (or a hosted REAPI cache) as the remote cache |
 | 4 | 2026-11-01 | CI on GitHub runners against real Floci: DynamoDB, EventBridge → SQS, SSM, Secrets Manager, S3 integration tests all pass. AppSync `EvaluateMappingTemplate` (VTL unit evaluation) is **not implemented** (UnknownOperationException). Deploy-side results pending | VTL tests self-skip on Floci; cover VTL via deployed-API e2e tests instead |
 | 5 | | | |
-| 6 | 2026-11-01 | Every Lambda zip is ~20 MB (mostly boto3/botocore, which the runtime already ships). Cold start not measured yet | Try excluding boto3 from Lambda zips |
+| 6 | 2026-11-01 | Every Lambda zip is ~20 MB (mostly boto3/botocore, which the runtime already ships). Floci runs functions on the host's architecture, so ARM64 zips (native pydantic-core wheels) fail to import on x86 CI runners | Build x86_64 for now; try excluding boto3; for real AWS consider Graviton via a parametrized arm64 Lambda target |
 | 7 | | | |
 | 8 | 2026-11-01 | 6–23 s per app (wave of 4 in parallel, cold jsii); all six apps build + synth in ~45 s | One CDK app per service holds up |
