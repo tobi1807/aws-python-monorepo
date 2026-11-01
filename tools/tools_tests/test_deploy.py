@@ -63,14 +63,13 @@ def test_invalid_arguments(argv: list[str]) -> None:
 
 
 def test_runtime_endpoint_derivation() -> None:
-    assert (
-        deploy.runtime_endpoint_for("http://localhost:4566") == "http://host.docker.internal:4566"
-    )
-    assert (
-        deploy.runtime_endpoint_for("http://127.0.0.1:4567") == "http://host.docker.internal:4567"
-    )
+    assert deploy.runtime_endpoint_for("http://localhost:4566") == "http://floci:4566"
+    assert deploy.runtime_endpoint_for("http://127.0.0.1:4567") == "http://floci-prod:4566"
     assert deploy.runtime_endpoint_for("http://floci-prod.lan:4566") == "http://floci-prod.lan:4566"
     assert deploy.runtime_endpoint_for("http://localhost:1", "http://x:2") == "http://x:2"
+    assert (
+        deploy.runtime_endpoint_for("http://localhost:9000") == "http://host.docker.internal:9000"
+    )
 
 
 # ------------------------------------------------------------------ planning
@@ -119,7 +118,7 @@ def test_plan_endpoint_from_flag_and_env(repo: Path, monkeypatch: pytest.MonkeyP
         repo, "--stage", "prod", "--apps", "platform", "--endpoint", "http://localhost:4567"
     )
     assert plan.endpoint == "http://localhost:4567"
-    assert plan.runtime_endpoint == "http://host.docker.internal:4567"
+    assert plan.runtime_endpoint == "http://floci-prod:4566"
 
 
 def test_aws_target_has_no_endpoint(repo: Path) -> None:

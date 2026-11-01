@@ -97,8 +97,9 @@ jobs:
     needs: plan
     if: needs.plan.outputs.count != '0'
     runs-on: ubuntu-latest
-    # Floci is started by a script, not as a service container: pushing images to
-    # Floci's ECR needs a Docker daemon restart, which would kill a service container.
+    # Floci is started by a script, not as a service container: it needs a
+    # user-defined Docker network shared with the containers it spawns
+    # (ECR registry, Lambda, ECS). See tools/ci-start-floci.sh.
     env:
       STAGE: pr-${{ github.event.number || 'mq' }}
     steps:
@@ -108,7 +109,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           deploy-tools: "true"
-      - name: Start Floci (trusting its ECR registry)
+      - name: Start Floci
         run: tools/ci-start-floci.sh
       # Lambdas and the ECS task are ARM64 (what we'd run on real AWS); GitHub's
       # runners are x86, so Floci needs QEMU to run those containers.
@@ -122,9 +123,8 @@ jobs:
             --affected-since "$BASE_REF" \
             --with-deps \
             --endpoint http://localhost:4566 \
-            --runtime-endpoint http://172.17.0.1:4566
-        # 172.17.0.1 is the Docker bridge gateway on Linux runners: how Lambda and
-        # ECS containers that Floci starts reach Floci's published port.
+            --runtime-endpoint http://floci:4566
+        # Lambda/ECS containers share Floci's network and reach it by name.
       - name: End-to-end tests for the affected apps
         env:
           AFFECTED_APPS: ${{ needs.plan.outputs.apps }}

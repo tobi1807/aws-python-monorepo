@@ -93,12 +93,24 @@ def package_name(app: str) -> str:
     return app.replace("-", "_")
 
 
+# Host port -> Floci container name on the shared `floci-net` network
+# (docker-compose.yml and tools/ci-start-floci.sh).
+LOCAL_FLOCI_CONTAINERS = {4566: "floci", 4567: "floci-prod"}
+
+
 def runtime_endpoint_for(endpoint: str, override: str | None = None) -> str:
-    """How Lambda/ECS containers reach a Floci that this machine reaches at ``endpoint``."""
+    """How Lambda/ECS containers reach a Floci that this machine reaches at ``endpoint``.
+
+    Local Floci runs on the `floci-net` Docker network and spawns functions on
+    it, so they reach Floci by container name on its internal port 4566.
+    """
     if override:
         return override
     parts = urlsplit(endpoint)
     if parts.hostname in LOCAL_HOSTS:
+        container = LOCAL_FLOCI_CONTAINERS.get(parts.port or 4566)
+        if container:
+            return f"http://{container}:4566"
         port = f":{parts.port}" if parts.port else ""
         return f"{parts.scheme}://host.docker.internal{port}"
     return endpoint

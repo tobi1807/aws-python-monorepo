@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
-# Start Floci for a CI job that deploys container images (the PR stage).
+# Start Floci for a CI job that deploys to it (the PR stage).
 #
-# Floci's ECR registry (<account>.dkr.ecr.<region>.localhost:4566) speaks plain
-# HTTP, and Docker only allows that for registries listed as insecure. Changing
-# that list means restarting the Docker daemon, which would kill a GitHub
-# Actions service container, so this script configures Docker first and then
-# starts Floci itself.
+# Why not a GitHub Actions service container: Floci must sit on a user-defined
+# Docker network that the containers it spawns also join:
+#   - its ECR backing registry is reached by container name, which Docker's
+#     default bridge network can't resolve (symptom: ECR returns 503);
+#   - Lambda/ECS containers reach Floci itself as http://floci:4566
+#     (FLOCI_HOSTNAME), so pass --runtime-endpoint http://floci:4566 to deploy.py.
+# Path-style ECR URIs (localhost:4566/<account>/<region>/<repo>) avoid Docker
+# treating *.localhost registries as HTTPS, so no daemon reconfiguration.
 #
-#   tools/ci-start-floci.sh [account] [region]
+#   tools/ci-start-floci.sh [region]
 set -euo pipefail
-ACCOUNT="${1:-000000000000}"
-REGION="${2:-eu-west-2}"
-REGISTRY="${ACCOUNT}.dkr.ecr.${REGION}.localhost:4566"
-DAEMON_JSON=/etc/docker/daemon.json
+REGION="${1:-eu-west-2}"
+NETWORK=floci-net
 
-current='{}'
-if [ -s "$DAEMON_JSON" ]; then current="$(sudo cat "$DAEMON_JSON")"; fi
-jq --arg reg "$REGISTRY" '.["insecure-registries"] = ((.["insecure-registries"] // []) + [$reg] | unique)' \
-  <<<"$current" | sudo tee "$DAEMON_JSON" >/dev/null
-sudo systemctl restart docker
-echo "Docker trusts $REGISTRY over HTTP"
+docker network inspect "$NETWORK" >/dev/null 2>&1 || docker network create "$NETWORK"
 
 docker run -d --name floci \
+  --network "$NETWORK" \
   -p 4566:4566 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e FLOCI_STORAGE_MODE=memory \
   -e FLOCI_DEFAULT_REGION="$REGION" \
+  -e FLOCI_HOSTNAME=floci \
+  -e FLOCI_SERVICES_DOCKER_NETWORK="$NETWORK" \
+  -e FLOCI_SERVICES_ECR_URI_STYLE=path \
   floci/floci:latest
 
 "$(dirname "$0")/wait-for-floci.sh" http://localhost:4566

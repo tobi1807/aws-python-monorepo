@@ -5,9 +5,14 @@
 #   docker compose --profile cache up -d bazel-remote   Pants remote cache experiment (see pants.cache.toml)
 #
 # The Docker socket is mounted so Floci runs Lambda/ECS as real containers.
+# Floci and the containers it spawns (ECR registry, Lambda, ECS) share the
+# `floci-net` network: Floci reaches its registry by name, and functions reach
+# Floci as http://floci:4566 (or http://floci-prod:4566). Path-style ECR URIs
+# (localhost:<port>/...) keep Docker from insisting on HTTPS.
 
 x-floci: &floci
   image: floci/floci:latest
+  networks: [floci-net]
   volumes:
     - /var/run/docker.sock:/var/run/docker.sock
 
@@ -19,6 +24,9 @@ services:
     environment:
       FLOCI_STORAGE_MODE: memory # state is lost on restart: a clean slate per `up`
       FLOCI_DEFAULT_REGION: eu-west-2
+      FLOCI_HOSTNAME: floci
+      FLOCI_SERVICES_DOCKER_NETWORK: floci-net
+      FLOCI_SERVICES_ECR_URI_STYLE: path
 
   floci-prod:
     <<: *floci
@@ -30,6 +38,9 @@ services:
       FLOCI_STORAGE_PERSISTENT_PATH: /app/data
       FLOCI_DEFAULT_REGION: eu-west-2
       FLOCI_BASE_URL: http://localhost:4567 # URLs Floci hands back (API endpoints, queue URLs)
+      FLOCI_HOSTNAME: floci-prod
+      FLOCI_SERVICES_DOCKER_NETWORK: floci-net
+      FLOCI_SERVICES_ECR_URI_STYLE: path
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./.floci-data:/app/data
@@ -39,6 +50,7 @@ services:
   pants-cache-bucket:
     profiles: ["cache"]
     image: amazon/aws-cli:latest
+    networks: [floci-net]
     depends_on:
       - floci
     environment:
@@ -58,6 +70,7 @@ services:
   bazel-remote:
     profiles: ["cache"]
     image: buchgr/bazel-remote-cache:latest
+    networks: [floci-net]
     depends_on:
       pants-cache-bucket:
         condition: service_completed_successfully
@@ -80,3 +93,7 @@ services:
 
 volumes:
   bazel-remote-data:
+
+networks:
+  floci-net:
+    name: floci-net # fixed name: Floci attaches the containers it spawns to it
