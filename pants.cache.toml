@@ -1,0 +1,16 @@
+# Local remote-cache experiment. Start the cache (Floci S3 behind bazel-remote):
+#
+#   docker compose --profile cache up -d bazel-remote
+#
+# then run Pants with this file layered on top of pants.toml:
+#
+#   PANTS_CONFIG_FILES=pants.cache.toml pants test apps/orders::
+#   (run twice, or run `pants --no-pantsd --no-local-cache ...` to see remote hits)
+[GLOBAL]
+remote_provider = "reapi"
+remote_store_address = "grpc://localhost:9092"
+remote_cache_read = true
+remote_cache_write = true
+
+[stats]
+log = true

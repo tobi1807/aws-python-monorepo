@@ -6,4 +6,12 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 ignore = ["E501"]
 
 [lint.isort]
-known-first-party = ["contracts", "runtime", "cdk_constructs"]
+# Pants lints in sandboxes that only contain part of the repo, so ruff can't
+# discover first-party packages from source roots. Invert it: anything that
+# isn't stdlib or a listed third-party package is first-party. Keep this list
+# in sync with 3rdparty/python/requirements.txt.
+default-section = "first-party"
+known-third-party = [
+  "aws_cdk", "constructs", "aws_lambda_powertools", "boto3", "botocore",
+  "pydantic", "pytest", "moto", "pact", "jsii", "yaml",
+]

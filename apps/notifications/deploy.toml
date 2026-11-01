@@ -1,0 +1,3 @@
+# The shared bus and AppConfig are owned by platform. The invoicing bucket is
+# looked up at runtime (runtime.config), so invoicing is deliberately not listed.
+depends_on = ["platform"]

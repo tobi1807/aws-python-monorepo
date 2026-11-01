@@ -3,9 +3,10 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
+
 from contracts.orders import OrderPlaced
 from runtime.aws import client
-from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 
 _serializer = TypeSerializer()
 _deserializer = TypeDeserializer()

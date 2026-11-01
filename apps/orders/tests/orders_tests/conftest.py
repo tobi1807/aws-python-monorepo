@@ -27,9 +27,7 @@ def aws(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
             BillingMode="PAY_PER_REQUEST",
         )
         client("events").create_event_bus(Name=BUS)
-        client("ssm").put_parameter(
-            Name="/test/platform/event-bus-name", Value=BUS, Type="String"
-        )
+        client("ssm").put_parameter(Name="/test/platform/event-bus-name", Value=BUS, Type="String")
         yield
     reset_runtime_caches()
 

@@ -1,0 +1,36 @@
+type Product {
+  sku: ID!
+  name: String!
+  price: Float!
+  currency: String!
+  stock: Int!
+  priceIn(currency: String!): Float
+  imageUploadUrl: String
+}
+
+type ProductConnection {
+  items: [Product!]!
+  nextToken: String
+}
+
+input ProductInput {
+  sku: ID!
+  name: String!
+  price: Float!
+  currency: String
+  stock: Int
+}
+
+type Query {
+  getProduct(sku: ID!): Product
+  listProducts(limit: Int, nextToken: String): ProductConnection!
+}
+
+type Mutation {
+  putProduct(input: ProductInput!): Product!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

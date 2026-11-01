@@ -40,14 +40,18 @@ def floci(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
             BillingMode="PAY_PER_REQUEST",
         )
         client("events").create_event_bus(Name=bus)
-        client("ssm").put_parameter(Name=f"/{stage}/platform/event-bus-name", Value=bus, Type="String")
+        client("ssm").put_parameter(
+            Name=f"/{stage}/platform/event-bus-name", Value=bus, Type="String"
+        )
 
         queue_url = client("sqs").create_queue(QueueName=f"{stage}-capture")["QueueUrl"]
         queue_arn = client("sqs").get_queue_attributes(
             QueueUrl=queue_url, AttributeNames=["QueueArn"]
         )["Attributes"]["QueueArn"]
         client("events").put_rule(
-            Name=f"{stage}-capture", EventBusName=bus, EventPattern=json.dumps({"source": ["shop.orders"]})
+            Name=f"{stage}-capture",
+            EventBusName=bus,
+            EventPattern=json.dumps({"source": ["shop.orders"]}),
         )
         client("events").put_targets(
             Rule=f"{stage}-capture", EventBusName=bus, Targets=[{"Id": "q", "Arn": queue_arn}]
@@ -66,7 +70,9 @@ def test_place_order_persists_and_emits_event(floci: str) -> None:
 
     deadline = time.monotonic() + 10
     while time.monotonic() < deadline:
-        messages = client("sqs").receive_message(QueueUrl=floci, WaitTimeSeconds=1).get("Messages", [])
+        messages = (
+            client("sqs").receive_message(QueueUrl=floci, WaitTimeSeconds=1).get("Messages", [])
+        )
         if messages:
             envelope = json.loads(messages[0]["Body"])
             assert envelope["detail-type"] == "OrderPlaced"

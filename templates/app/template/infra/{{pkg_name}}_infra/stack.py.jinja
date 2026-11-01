@@ -1,0 +1,29 @@
+from __future__ import annotations
+
+import aws_cdk as cdk
+from constructs import Construct
+
+from cdk_constructs.params import export_param
+from cdk_constructs.service_function import ServiceFunction
+from cdk_constructs.stage import StageContext
+
+SRC = "apps/{{ app_name }}/src/{{ pkg_name }}"
+
+
+class {{ class_prefix }}Stack(cdk.Stack):
+    def __init__(self, scope: Construct, construct_id: str, *, ctx: StageContext, **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+
+        handler = ServiceFunction(
+            self,
+            "Handler",
+            ctx=ctx,
+            target_dir=SRC,
+            target_name="handler",
+        )
+
+        # Publish what other apps may need; read it at runtime with
+        # runtime.config.get_config("{{ app_name }}", "function-name").
+        export_param(self, ctx, "function-name", handler.function.function_name)
+
+        cdk.CfnOutput(self, "FunctionName", value=handler.function.function_name)

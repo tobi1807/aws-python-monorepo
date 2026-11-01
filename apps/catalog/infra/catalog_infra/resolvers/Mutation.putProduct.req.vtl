@@ -1,0 +1,16 @@
+#set($input = $ctx.args.input)
+#set($currency = $util.defaultIfNullOrBlank($input.currency, "GBP"))
+#set($stock = $util.defaultIfNull($input.stock, 0))
+{
+  "version": "2018-05-29",
+  "operation": "PutItem",
+  "key": {
+    "sku": $util.dynamodb.toDynamoDBJson($input.sku)
+  },
+  "attributeValues": {
+    "name": $util.dynamodb.toDynamoDBJson($input.name),
+    "price": $util.dynamodb.toDynamoDBJson($input.price),
+    "currency": $util.dynamodb.toDynamoDBJson($currency),
+    "stock": $util.dynamodb.toDynamoDBJson($stock)
+  }
+}

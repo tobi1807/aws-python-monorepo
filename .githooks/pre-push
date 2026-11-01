@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Mirrors the PR "checks" job for what you changed: lint, typecheck, unit tests
+# for the changed targets and everything that depends on them.
+# Floci-backed tests (tag "floci") are skipped; CI runs those.
+# Bypass in an emergency with: git push --no-verify
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+if ! git rev-parse --verify --quiet origin/main >/dev/null; then
+  echo "pre-push: origin/main not found; skipping checks."
+  exit 0
+fi
+if ! command -v pants >/dev/null 2>&1; then
+  echo "pre-push: pants not installed; skipping checks."
+  exit 0
+fi
+
+exec pants lint check test \
+  --changed-since=origin/main \
+  --changed-dependents=transitive \
+  --tag=-floci --tag=-e2e

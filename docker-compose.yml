@@ -1,0 +1,82 @@
+# Local infrastructure. Floci plays every AWS environment, including "prod".
+#
+#   docker compose up -d floci                     dev & tests      http://localhost:4566
+#   docker compose --profile prod up -d floci-prod  "production"     http://localhost:4567 (persistent)
+#   docker compose --profile cache up -d bazel-remote   Pants remote cache experiment (see pants.cache.toml)
+#
+# The Docker socket is mounted so Floci runs Lambda/ECS as real containers.
+
+x-floci: &floci
+  image: floci/floci:latest
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+
+services:
+  floci:
+    <<: *floci
+    ports:
+      - "4566:4566"
+    environment:
+      FLOCI_STORAGE_MODE: memory # state is lost on restart: a clean slate per `up`
+      FLOCI_DEFAULT_REGION: eu-west-2
+
+  floci-prod:
+    <<: *floci
+    profiles: ["prod"]
+    ports:
+      - "4567:4566"
+    environment:
+      FLOCI_STORAGE_MODE: persistent
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+      FLOCI_DEFAULT_REGION: eu-west-2
+      FLOCI_BASE_URL: http://localhost:4567 # URLs Floci hands back (API endpoints, queue URLs)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./.floci-data:/app/data
+
+  # --- Remote cache experiment: Pants -> bazel-remote (REAPI gRPC) -> S3 on Floci ---
+
+  pants-cache-bucket:
+    profiles: ["cache"]
+    image: amazon/aws-cli:latest
+    depends_on:
+      - floci
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: eu-west-2
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until aws --endpoint-url http://floci:4566 s3api head-bucket --bucket pants-cache 2>/dev/null \
+          || aws --endpoint-url http://floci:4566 s3 mb s3://pants-cache; do
+          echo "waiting for floci..."; sleep 2
+        done
+        echo "bucket pants-cache ready"
+    restart: "no"
+
+  bazel-remote:
+    profiles: ["cache"]
+    image: buchgr/bazel-remote-cache:latest
+    depends_on:
+      pants-cache-bucket:
+        condition: service_completed_successfully
+    ports:
+      - "9092:9092" # gRPC (what Pants talks to)
+      - "8080:8080" # HTTP (status page / debugging)
+    volumes:
+      - bazel-remote-data:/data
+    command:
+      - --dir=/data
+      - --max_size=5 # GiB of local disk cache in front of S3
+      - --s3.endpoint=floci:4566 # host:port, no scheme
+      - --s3.bucket=pants-cache
+      - --s3.prefix=cas
+      - --s3.auth_method=access_key
+      - --s3.access_key_id=test
+      - --s3.secret_access_key=test
+      - --s3.disable_ssl # Floci speaks plain HTTP
+      - --s3.region=eu-west-2
+
+volumes:
+  bazel-remote-data:

@@ -1,0 +1,35 @@
+"""Infra unit tests: synthesize with stubbed assets and assert on the template."""
+
+from __future__ import annotations
+
+import aws_cdk as cdk
+import pytest
+from aws_cdk.assertions import Template
+
+from cdk_constructs.stage import StageContext
+from {{ pkg_name }}_infra.stack import {{ class_prefix }}Stack
+
+
+@pytest.fixture(autouse=True)
+def stub_assets(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CDK_STUB_ASSETS", "1")
+
+
+def synth(stage: str) -> Template:
+    app = cdk.App(context={"stage": stage, "target": "floci"})
+    ctx = StageContext.of(app, "{{ app_name }}")
+    stack = {{ class_prefix }}Stack(app, f"{stage}-{{ app_name }}", ctx=ctx)
+    return Template.from_stack(stack)
+
+
+def test_function_named_by_stage() -> None:
+    synth("pr-42").has_resource_properties(
+        "AWS::Lambda::Function",
+        {"FunctionName": "pr-42-{{ app_name }}-handler", "Runtime": "python3.13"},
+    )
+
+
+def test_publishes_function_name_to_ssm() -> None:
+    synth("prod").has_resource_properties(
+        "AWS::SSM::Parameter", {"Name": "/prod/{{ app_name }}/function-name"}
+    )

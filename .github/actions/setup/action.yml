@@ -1,0 +1,41 @@
+name: Setup toolchain
+description: Python 3.13, Node 22, Pants, and the Pants remote cache backed by the GitHub Actions cache service.
+
+inputs:
+  deploy-tools:
+    description: Also install what tools/deploy.py needs (npm ci for the CDK CLI, boto3).
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+        cache: npm
+
+    - uses: pantsbuild/actions/init-pants@v9
+      with:
+        gha-cache-key: pants-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pants.toml') }}
+        named-caches-hash: ${{ hashFiles('3rdparty/python/default.lock') }}
+
+    # ACTIONS_CACHE_URL and ACTIONS_RUNTIME_TOKEN are only visible to JavaScript
+    # actions, not to `run:` steps, so export them as Pants options from here.
+    - name: Point Pants at the GitHub Actions cache
+      uses: actions/github-script@v7
+      with:
+        script: |
+          core.exportVariable('PANTS_REMOTE_STORE_ADDRESS', process.env.ACTIONS_CACHE_URL);
+          core.exportVariable('PANTS_REMOTE_OAUTH_BEARER_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
+          core.exportVariable('PANTS_CONFIG_FILES', 'pants.ci.toml');
+
+    - name: Install deploy tooling
+      if: inputs.deploy-tools == 'true'
+      shell: bash
+      run: |
+        npm ci
+        python3 -m pip install "boto3>=1.40,<2"

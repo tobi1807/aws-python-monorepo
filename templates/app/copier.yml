@@ -1,0 +1,39 @@
+# Scaffold for a new app. Use tools/new-app.sh <name> (runs: uvx copier copy ...).
+#
+#   uvx copier copy --trust templates/app apps/<name> --data app_name=<name>
+#
+# Files under template/ ending in .jinja are rendered (suffix stripped); BUILD
+# files are named BUILD.jinja so Pants doesn't treat the template as real targets.
+_subdirectory: template
+_templates_suffix: .jinja
+_min_copier_version: "9.0.0"
+
+app_name:
+  type: str
+  help: App name (lowercase snake_case or kebab-case), e.g. order_items
+  validator: >-
+    {% if not (app_name | regex_search('^[a-z][a-z0-9]*([_-][a-z0-9]+)*$')) %}
+    Use lowercase letters and digits, separated by single "_" or "-" (start with a letter).
+    {% endif %}
+
+description:
+  type: str
+  help: One line describing what the service does
+  default: "{{ app_name }} service"
+
+owner_team:
+  type: str
+  help: GitHub team that owns the app (goes in CODEOWNERS), e.g. orders-team
+  default: "{{ app_name | replace('_', '-') }}-team"
+
+# Python package name: kebab-case app names can't be package names.
+pkg_name:
+  type: str
+  default: "{{ app_name | replace('-', '_') }}"
+  when: false
+
+# CamelCase prefix for the stack class, e.g. order_items -> OrderItems.
+class_prefix:
+  type: str
+  default: "{{ pkg_name | replace('_', ' ') | title | replace(' ', '') }}"
+  when: false

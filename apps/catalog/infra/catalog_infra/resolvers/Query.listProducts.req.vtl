@@ -1,0 +1,12 @@
+#set($limit = $util.defaultIfNull($ctx.args.limit, 20))
+#if($limit > 100)
+  #set($limit = 100)
+#end
+{
+  "version": "2018-05-29",
+  "operation": "Scan",
+  "limit": $limit
+#if(!$util.isNullOrBlank($ctx.args.nextToken))
+  ,"nextToken": $util.toJson($ctx.args.nextToken)
+#end
+}

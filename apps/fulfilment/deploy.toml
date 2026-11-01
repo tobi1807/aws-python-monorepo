@@ -1,0 +1,6 @@
+# Deploy-time dependencies only: apps whose resources this app's CloudFormation
+# needs to exist first. Runtime lookups (SSM via runtime.config) don't count.
+# - platform: owns the shared bus this app subscribes to and publishes on.
+# - invoicing: the RenderInvoice state targets invoicing's ECS cluster/task
+#   definition/subnets/security group, imported at deploy time (import_param).
+depends_on = ["platform", "invoicing"]

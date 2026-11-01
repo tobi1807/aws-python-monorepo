@@ -1,0 +1,20 @@
+{
+  "express_checkout": {
+    "default": false,
+    "rules": {
+      "enable for example.com customers": {
+        "when_match": true,
+        "conditions": [
+          {
+            "action": "ENDSWITH",
+            "key": "customer_email",
+            "value": "@example.com"
+          }
+        ]
+      }
+    }
+  },
+  "invoice_html": {
+    "default": true
+  }
+}

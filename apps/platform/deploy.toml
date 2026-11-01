@@ -1,0 +1,3 @@
+# The platform app owns the shared bus, AppConfig and baseline SSM params.
+# It deploys first and depends on nothing.
+depends_on = []

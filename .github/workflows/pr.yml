@@ -1,0 +1,119 @@
+name: PR
+
+on:
+  pull_request:
+  merge_group:
+
+# A new push supersedes the running checks for the same PR. Merge-queue runs are never cancelled.
+concurrency:
+  group: pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # What "changed" means: the PR's base branch, or the merge group's base commit.
+  BASE_REF: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || format('origin/{0}', github.base_ref) }}
+
+jobs:
+  # Which apps does this change touch? Also drives the PR stage below.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.affected.outputs.apps }}
+      count: ${{ steps.affected.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Affected apps
+        id: affected
+        run: |
+          result="$(python3 tools/affected.py --since "$BASE_REF")"
+          echo "$result"
+          echo "apps=$(jq -c .apps <<<"$result")" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq -r .count <<<"$result")" >> "$GITHUB_OUTPUT"
+
+  # Fast feedback: lint, typecheck and unit tests for everything the change can break.
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Deploy manifests match infra code
+        run: python3 tools/deploy_plan.py --check
+      # Equivalent to: pants --changed-since=$BASE_REF --changed-dependents=transitive lint check test ...
+      # (or `::` when pants.toml, lockfiles or workflows changed).
+      - name: Lint, typecheck, test (affected)
+        run: tools/ci-pants.sh "$BASE_REF" lint check test --tag=-floci --tag=-e2e
+
+  # Integration tests: a fresh Floci per job.
+  floci-tests:
+    runs-on: ubuntu-latest
+    services:
+      floci:
+        image: floci/floci:latest
+        ports:
+          - 4566:4566
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+        env:
+          FLOCI_STORAGE_MODE: memory
+          FLOCI_DEFAULT_REGION: eu-west-2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - run: tools/wait-for-floci.sh http://localhost:4566
+      - name: Floci integration tests (affected)
+        env:
+          FLOCI_ENDPOINT: http://localhost:4566
+        run: tools/ci-pants.sh "$BASE_REF" test --tag=floci --tag=-e2e
+
+  # Deploy the affected apps (plus what they depend on) to a throwaway Floci and
+  # run their end-to-end tests against it. The Floci container dies with the job,
+  # so the stage name is only a label.
+  pr-stage:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    services:
+      floci:
+        image: floci/floci:latest
+        ports:
+          - 4566:4566
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+        env:
+          FLOCI_STORAGE_MODE: memory
+          FLOCI_DEFAULT_REGION: eu-west-2
+    env:
+      STAGE: pr-${{ github.event.number || 'mq' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        with:
+          deploy-tools: "true"
+      - run: tools/wait-for-floci.sh http://localhost:4566
+      - name: Deploy affected apps and their dependencies
+        run: |
+          python3 tools/deploy.py \
+            --stage "$STAGE" \
+            --affected-since "$BASE_REF" \
+            --with-deps \
+            --endpoint http://localhost:4566
+      - name: End-to-end tests for the affected apps
+        env:
+          AFFECTED_APPS: ${{ needs.plan.outputs.apps }}
+          AWS_ENDPOINT_URL: http://localhost:4566
+          FLOCI_ENDPOINT: http://localhost:4566
+        run: |
+          specs="$(jq -r '.[] | "apps/\(.)::"' <<<"$AFFECTED_APPS" | tr '\n' ' ')"
+          pants --tag=e2e test $specs

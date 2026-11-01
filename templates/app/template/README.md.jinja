@@ -1,0 +1,30 @@
+# {{ app_name }}
+
+{{ description }}
+
+Owner: `@org/{{ owner_team }}`
+
+## Layout
+
+```
+src/{{ pkg_name }}/            Lambda handlers (python_aws_lambda_function in BUILD)
+infra/{{ pkg_name }}_infra/    CDK app: one stack named <stage>-{{ app_name }}
+tests/{{ pkg_name }}_tests/    unit/ (moto, no network), infra/ (CDK assertions)
+deploy.toml                    deploy-time dependencies
+```
+
+See `docs/CONVENTIONS.md` for the rules every app follows.
+
+## Develop
+
+```bash
+tools/dev-pytest.sh apps/{{ app_name }}/tests          # fast loop
+pants lint check test apps/{{ app_name }}::            # source of truth
+tools/deploy.py --stage dev-$USER --apps {{ app_name }} --with-deps
+```
+
+## Checklist after generating
+
+- [ ] Add `/apps/{{ app_name }}/ @org/{{ owner_team }}` to `CODEOWNERS`
+- [ ] Replace the placeholder handler and add your resources to `stack.py`
+- [ ] `pants tailor ::` should report nothing to add

@@ -1,0 +1,5 @@
+# Deploy-time dependencies only: apps whose resources this app's CloudFormation
+# needs to exist first. Runtime lookups (SSM via runtime.config) don't count.
+# If you call import_param(self, ctx, "<app>", ...), add "<app>" here:
+# `python3 tools/deploy_plan.py --check` enforces it in CI.
+depends_on = ["platform"]

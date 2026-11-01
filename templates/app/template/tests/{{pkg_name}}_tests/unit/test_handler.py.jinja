@@ -1,0 +1,13 @@
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from {{ pkg_name }} import handler
+
+
+def test_handler_says_hello(lambda_context: Any) -> None:
+    response = handler.handler({}, lambda_context)
+
+    assert response["statusCode"] == 200
+    assert json.loads(response["body"])["service"] == "{{ app_name }}"

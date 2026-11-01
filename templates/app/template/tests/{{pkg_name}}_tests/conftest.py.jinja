@@ -1,0 +1,15 @@
+from __future__ import annotations
+
+import pytest
+
+
+class FakeContext:
+    function_name = "{{ app_name }}-handler"
+    memory_limit_in_mb = 512
+    invoked_function_arn = "arn:aws:lambda:eu-west-2:000000000000:function:{{ app_name }}-handler"
+    aws_request_id = "req-1"
+
+
+@pytest.fixture
+def lambda_context() -> FakeContext:
+    return FakeContext()

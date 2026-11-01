@@ -1,0 +1,94 @@
+name: Main
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.affected.outputs.apps }}
+      count: ${{ steps.affected.outputs.count }}
+      since: ${{ steps.since.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      # `before` is all zeros on a branch's first push and may be unreachable after a
+      # force-push; fall back to the previous commit.
+      - name: Resolve comparison base
+        id: since
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$BEFORE" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            echo "ref=$BEFORE" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=HEAD~1" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Affected apps
+        id: affected
+        env:
+          SINCE: ${{ steps.since.outputs.ref }}
+        run: |
+          result="$(python3 tools/affected.py --since "$SINCE")"
+          echo "$result"
+          echo "apps=$(jq -c .apps <<<"$result")" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq -r .count <<<"$result")" >> "$GITHUB_OUTPUT"
+
+  checks:
+    needs: plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - run: python3 tools/deploy_plan.py --check
+      - name: Lint, typecheck, test (affected)
+        env:
+          SINCE: ${{ needs.plan.outputs.since }}
+        run: tools/ci-pants.sh "$SINCE" lint check test --tag=-floci --tag=-e2e
+
+  # "Prod" is a long-lived Floci next to a self-hosted runner. Only the affected apps
+  # deploy (no --with-deps: prod already has everything else), in dependency order.
+  # `concurrency: prod` serialises deploys. GitHub keeps only ONE pending run per group,
+  # so a burst of pushes can supersede an intermediate run: if that matters, run
+  # `tools/deploy.py --stage prod --all` by hand (unchanged apps are skipped by the hash gate).
+  deploy-prod:
+    needs: [plan, checks]
+    if: needs.plan.outputs.count != '0'
+    runs-on: [self-hosted, floci-prod]
+    concurrency:
+      group: prod
+      cancel-in-progress: false
+    env:
+      FLOCI_PROD_ENDPOINT: ${{ vars.FLOCI_PROD_ENDPOINT }}
+      SINCE: ${{ needs.plan.outputs.since }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        with:
+          deploy-tools: "true"
+      - name: Deploy affected apps to prod
+        run: |
+          python3 tools/deploy.py \
+            --stage prod \
+            --affected-since "$SINCE" \
+            --endpoint "$FLOCI_PROD_ENDPOINT"
+      - name: Smoke tests against prod
+        env:
+          AFFECTED_APPS: ${{ needs.plan.outputs.apps }}
+          STAGE: prod
+          AWS_ENDPOINT_URL: ${{ vars.FLOCI_PROD_ENDPOINT }}
+          FLOCI_ENDPOINT: ${{ vars.FLOCI_PROD_ENDPOINT }}
+        run: |
+          specs="$(jq -r '.[] | "apps/\(.)::"' <<<"$AFFECTED_APPS" | tr '\n' ' ')"
+          pants --tag=e2e test $specs

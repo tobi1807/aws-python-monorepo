@@ -1,0 +1,12 @@
+# Layered on top of pants.toml in CI: PANTS_CONFIG_FILES=pants.ci.toml.
+# The workflows export PANTS_REMOTE_STORE_ADDRESS / PANTS_REMOTE_OAUTH_BEARER_TOKEN
+# from the Actions runtime, which is what this provider needs.
+[GLOBAL]
+remote_provider = "experimental-github-actions-cache"
+remote_cache_read = true
+remote_cache_write = true
+colors = true
+
+[stats]
+# Prints cache hits/misses and time saved at the end of every run.
+log = true

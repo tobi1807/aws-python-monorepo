@@ -1,0 +1,133 @@
+{
+  "consumer": {
+    "name": "notifications"
+  },
+  "interactions": [
+    {
+      "contents": {
+        "content": {
+          "customer_email": "ada@example.com",
+          "fulfilled_at": "2026-01-01T12:00:00Z",
+          "invoice_key": "invoices/ord-123.html",
+          "order_id": "ord-123"
+        },
+        "contentType": "application/json",
+        "encoded": false
+      },
+      "description": "an OrderFulfilled event",
+      "matchingRules": {
+        "body": {
+          "$.customer_email": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "^[^@\\s]+@[^@\\s]+$"
+              }
+            ]
+          },
+          "$.fulfilled_at": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+              }
+            ]
+          },
+          "$.invoice_key": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.order_id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json",
+        "detail-type": "OrderFulfilled"
+      },
+      "pending": false,
+      "type": "Asynchronous/Messages"
+    },
+    {
+      "contents": {
+        "content": {
+          "customer_email": "bob@example.com",
+          "failed_at": "2026-01-01T13:30:00Z",
+          "order_id": "ord-456",
+          "reason": "out of stock: TEA-001"
+        },
+        "contentType": "application/json",
+        "encoded": false
+      },
+      "description": "an OrderFulfilmentFailed event",
+      "matchingRules": {
+        "body": {
+          "$.customer_email": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "^[^@\\s]+@[^@\\s]+$"
+              }
+            ]
+          },
+          "$.failed_at": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+              }
+            ]
+          },
+          "$.order_id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.reason": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json",
+        "detail-type": "OrderFulfilmentFailed"
+      },
+      "pending": false,
+      "type": "Asynchronous/Messages"
+    }
+  ],
+  "metadata": {
+    "pactRust": {
+      "ffi": "0.5.12",
+      "models": "1.3.16"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "fulfilment"
+  }
+}

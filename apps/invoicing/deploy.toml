@@ -1,0 +1,5 @@
+# Deploy-time dependencies only: apps whose resources this app's CloudFormation
+# needs to exist first. Runtime lookups (SSM via runtime.config) don't count.
+# invoicing creates its own VPC/cluster/bucket; the platform app is declared
+# because every app is deployed after it.
+depends_on = ["platform"]

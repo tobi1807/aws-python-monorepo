@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 from pact import Verifier
+from pact.types import Message
 
 from contracts.orders import OrderLine
 from orders.models import PlaceOrderRequest
@@ -21,7 +22,7 @@ from testkit.pact import committed_pact
 CONSUMERS = ["fulfilment"]
 
 
-def produce_order_placed(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+def produce_order_placed(*_args: Any, **_kwargs: Any) -> Message:
     """Build the event with the same code path production uses."""
     request = PlaceOrderRequest(
         customer_email="ada@example.com",

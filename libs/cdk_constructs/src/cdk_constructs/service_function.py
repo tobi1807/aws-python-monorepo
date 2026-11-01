@@ -65,7 +65,10 @@ class ServiceFunction(Construct):
         )
 
         self.alias = lambda_.Alias(
-            self, "Live", alias_name="live", version=self.function.current_version
+            self,
+            "Live",
+            alias_name="live",
+            version=self.function.current_version,  # pyright: ignore[reportArgumentType]  (jsii protocol)
         )
 
         self.errors_alarm = cloudwatch.Alarm(
@@ -89,4 +92,4 @@ class ServiceFunction(Construct):
     @property
     def target(self) -> lambda_.IFunction:
         """What callers (API routes, event sources, Step Functions) should invoke."""
-        return self.alias
+        return self.alias  # pyright: ignore[reportReturnType]  (jsii protocol)

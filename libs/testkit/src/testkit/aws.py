@@ -46,6 +46,4 @@ def floci_endpoint(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
 
 
 def floci_required() -> pytest.MarkDecorator:
-    return pytest.mark.skipif(
-        not os.environ.get("FLOCI_ENDPOINT"), reason="FLOCI_ENDPOINT not set"
-    )
+    return pytest.mark.skipif(not os.environ.get("FLOCI_ENDPOINT"), reason="FLOCI_ENDPOINT not set")

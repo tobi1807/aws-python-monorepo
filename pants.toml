@@ -8,6 +8,8 @@ backend_packages = [
   "pants.backend.awslambda.python",
   "pants.backend.docker",
 ]
+# Copier templates contain Jinja placeholders, not real Python/BUILD files.
+pants_ignore.add = ["/templates/"]
 
 [source]
 # Each app has three roots: runtime code, CDK infra, tests.

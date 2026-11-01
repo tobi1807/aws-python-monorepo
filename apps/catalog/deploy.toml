@@ -1,0 +1,3 @@
+# Deploy-time dependencies only. Catalog reads nothing from other apps at deploy
+# time; platform is declared so shared resources exist before catalog goes live.
+depends_on = ["platform"]

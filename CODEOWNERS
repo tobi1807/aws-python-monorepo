@@ -1,0 +1,36 @@
+# Per-app ownership. Last matching pattern wins.
+# Teams are placeholders: replace "@org" with your GitHub organisation.
+# New apps: tools/new-app.sh prints the line to add here.
+
+# Platform team owns everything shared.
+/libs/            @org/platform-team
+/tools/           @org/platform-team
+/templates/       @org/platform-team
+/docs/            @org/platform-team
+/3rdparty/        @org/platform-team
+/.github/         @org/platform-team
+/.githooks/       @org/platform-team
+/pants*.toml      @org/platform-team
+/ruff.toml        @org/platform-team
+/pyproject.toml   @org/platform-team
+/package*.json    @org/platform-team
+/docker-compose.yml @org/platform-team
+/CODEOWNERS       @org/platform-team
+
+# Apps.
+/apps/platform/      @org/platform-team
+/apps/orders/        @org/orders-team
+/apps/catalog/       @org/catalog-team
+/apps/fulfilment/    @org/fulfilment-team
+/apps/invoicing/     @org/invoicing-team
+/apps/notifications/ @org/notifications-team
+
+# Pact files (/pacts/<consumer>-<provider>.json) are a contract between two teams.
+# A consumer regenerates them (tools/update-pacts.sh), but the PROVIDER team must
+# review the change, because it alters what their verification test checks.
+# CODEOWNERS can't express "provider of this file", so list both sides per pact,
+# and require code-owner review in branch protection. Example:
+#   /pacts/fulfilment-orders.json       @org/fulfilment-team @org/orders-team
+#   /pacts/notifications-fulfilment.json @org/notifications-team @org/fulfilment-team
+/pacts/fulfilment-orders.json         @org/fulfilment-team @org/orders-team
+/pacts/notifications-fulfilment.json  @org/notifications-team @org/fulfilment-team
