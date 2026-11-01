@@ -127,12 +127,13 @@ benchmark (docs/EXPERIMENTS.md #3).
 
 ## Status of this experiment
 
-Verified here: `pants tailor --check`, `lint`, `check` (pyright) and `test`
-are all green (265 tests). All six CDK apps build and synthesize. Pact
-verification passes in both directions. Affected detection was measured
-(docs/EXPERIMENTS.md #1).
+Verified on GitHub Actions (PR #1): lint, pyright, unit/infra/contract tests,
+synth of all six apps, Floci integration tests, and a PR stage that deploys
+**all six apps to a fresh Floci** in three waves (~96 s) and runs e2e tests
+against the deployed orders Lambda. Whole PR run: about 3–4 minutes.
 
-Not yet verified, because it needs a Docker daemon: anything running *on*
-Floci. That covers deploys, the `floci`/`e2e`-tagged tests, VTL evaluation,
-ECS `.sync` from Step Functions, and the S3-backed cache. Run experiment 4
-first; it tells you which parts of Floci to trust.
+Floci gaps found along the way (docs/EXPERIMENTS.md #4): no AppSync
+`EvaluateMappingTemplate` (VTL unit tests self-skip), CDK custom-resource
+Lambdas can't reach its S3, and functions run on the host's CPU architecture
+(so builds are x86_64). Not yet exercised: the prod deploy (needs a
+self-hosted `floci-prod` runner) and the S3-backed Pants remote cache.
