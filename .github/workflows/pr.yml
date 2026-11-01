@@ -49,7 +49,7 @@ jobs:
       # Equivalent to: pants --changed-since=$BASE_REF --changed-dependents=transitive lint check test ...
       # (or `::` when pants.toml, lockfiles or workflows changed).
       - name: Lint, typecheck, test (affected)
-        run: tools/ci-pants.sh "$BASE_REF" lint check test --tag=-floci --tag=-e2e
+        run: tools/ci-pants.sh "$BASE_REF" --tag=-floci --tag=-e2e lint check test
 
   # Build artifacts and synthesize the affected CDK apps without deploying:
   # catches broken infra in ~1 minute, before the slower PR-stage deploy finishes.
@@ -88,7 +88,7 @@ jobs:
       - name: Floci integration tests (affected)
         env:
           FLOCI_ENDPOINT: http://localhost:4566
-        run: tools/ci-pants.sh "$BASE_REF" test --tag=floci --tag=-e2e
+        run: tools/ci-pants.sh "$BASE_REF" --tag=floci --tag=-e2e test
 
   # Deploy the affected apps (plus what they depend on) to a throwaway Floci and
   # run their end-to-end tests against it. The Floci container dies with the job,

@@ -2,7 +2,10 @@
 # Run pants for "what this change affects", or for everything when a file Pants
 # can't see (pants.toml, lockfiles, workflows, ...) changed.
 #
-#   tools/ci-pants.sh origin/main lint check test --tag=-floci
+#   tools/ci-pants.sh origin/main --tag=-floci lint check test
+#
+# Global flags such as --tag must come before the goals; flags after a goal
+# are scoped to that goal and Pants rejects them.
 set -euo pipefail
 BASE="$1"; shift
 cd "$(dirname "$0")/.."

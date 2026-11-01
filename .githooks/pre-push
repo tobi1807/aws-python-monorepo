@@ -15,7 +15,9 @@ if ! command -v pants >/dev/null 2>&1; then
   exit 0
 fi
 
-exec pants lint check test \
+# Global flags (--changed-*, --tag) must come before the goals.
+exec pants \
   --changed-since=origin/main \
   --changed-dependents=transitive \
-  --tag=-floci --tag=-e2e
+  --tag=-floci --tag=-e2e \
+  lint check test
