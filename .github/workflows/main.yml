@@ -60,9 +60,13 @@ jobs:
   # `concurrency: prod` serialises deploys. GitHub keeps only ONE pending run per group,
   # so a burst of pushes can supersede an intermediate run: if that matters, run
   # `tools/deploy.py --stage prod --all` by hand (unchanged apps are skipped by the hash gate).
+  # Disabled until a self-hosted runner labelled `floci-prod` exists (it runs the
+  # long-lived "production" Floci). To enable: register the runner, start
+  # `docker compose --profile prod up -d` on it, then set repository variables
+  # FLOCI_PROD_ENABLED=true and FLOCI_PROD_ENDPOINT=<its endpoint>.
   deploy-prod:
     needs: [plan, checks]
-    if: needs.plan.outputs.count != '0'
+    if: vars.FLOCI_PROD_ENABLED == 'true' && needs.plan.outputs.count != '0'
     runs-on: [self-hosted, floci-prod]
     concurrency:
       group: prod
