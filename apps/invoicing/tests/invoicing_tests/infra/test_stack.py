@@ -39,7 +39,7 @@ def test_task_definition_is_small_arm_fargate() -> None:
             "Memory": "512",
             "RequiresCompatibilities": ["FARGATE"],
             "NetworkMode": "awsvpc",
-            "RuntimePlatform": {"CpuArchitecture": "ARM64", "OperatingSystemFamily": "LINUX"},
+            "RuntimePlatform": {"CpuArchitecture": "X86_64", "OperatingSystemFamily": "LINUX"},
         },
     )
 

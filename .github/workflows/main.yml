@@ -53,7 +53,7 @@ jobs:
       - name: Lint, typecheck, test (affected)
         env:
           SINCE: ${{ needs.plan.outputs.since }}
-        run: tools/ci-pants.sh "$SINCE" lint check test --tag=-floci --tag=-e2e
+        run: tools/ci-pants.sh "$SINCE" --tag=-floci --tag=-e2e lint check test
 
   # "Prod" is a long-lived Floci next to a self-hosted runner. Only the affected apps
   # deploy (no --with-deps: prod already has everything else), in dependency order.

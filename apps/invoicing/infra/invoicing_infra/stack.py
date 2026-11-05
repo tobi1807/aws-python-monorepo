@@ -68,7 +68,7 @@ class InvoicingStack(cdk.Stack):
             cpu=256,
             memory_limit_mib=512,
             runtime_platform=ecs.RuntimePlatform(
-                cpu_architecture=ecs.CpuArchitecture.ARM64,
+                cpu_architecture=ecs.CpuArchitecture.X86_64,
                 operating_system_family=ecs.OperatingSystemFamily.LINUX,
             ),
         )
@@ -78,7 +78,7 @@ class InvoicingStack(cdk.Stack):
         else:
             image = ecs.ContainerImage.from_asset(
                 str(container_context(CONTAINER_BUILD_DIR)),
-                platform=ecr_assets.Platform.LINUX_ARM64,
+                platform=ecr_assets.Platform.LINUX_AMD64,
             )
 
         log_group = logs.LogGroup(

@@ -52,7 +52,8 @@ class CatalogStack(cdk.Stack):
             "Images",
             bucket_name=ctx.name("images"),
             removal_policy=ctx.removal_policy,
-            auto_delete_objects=not ctx.is_prod,
+            # Auto-delete uses a CDK custom-resource Lambda that can't reach Floci's S3.
+            auto_delete_objects=ctx.is_ephemeral and not ctx.on_floci,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             cors=[
                 s3.CorsRule(

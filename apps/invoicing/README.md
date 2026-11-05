@@ -4,7 +4,7 @@ The invoicing app renders an HTML invoice for each order in a one-off ECS Fargat
 
 ## AWS services
 
-- Amazon ECS on AWS Fargate: the `{stage}-invoicing-cluster` cluster and the `{stage}-invoicing-render` task definition (0.25 vCPU, 512 MiB, ARM64), with one container named `render`.
+- Amazon ECS on AWS Fargate: the `{stage}-invoicing-cluster` cluster and the `{stage}-invoicing-render` task definition (0.25 vCPU, 512 MiB, x86_64), with one container named `render`.
 - Amazon VPC: one VPC with a single public subnet, no NAT gateway, and a security group that allows outbound traffic only.
 - Amazon S3: the `invoices` bucket, with public access blocked. The task role can write to it.
 - Amazon ECR: on real deploys, CDK builds the container image from the staged Docker context in `dist/docker/invoicing` and publishes it as an image asset. With `CDK_STUB_ASSETS=1`, a stub Python image is used instead.

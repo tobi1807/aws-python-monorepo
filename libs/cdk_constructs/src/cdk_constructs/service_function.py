@@ -54,7 +54,11 @@ class ServiceFunction(Construct):
             "Fn",
             function_name=function_name,
             runtime=lambda_.Runtime.PYTHON_3_13,
-            architecture=lambda_.Architecture.ARM_64,
+            # x86_64, not ARM64: Floci runs functions on the host's architecture
+            # (x86 CI runners), and Pants builds native wheels (pydantic-core) for
+            # the arch declared on the python_aws_lambda_function target. Revisit
+            # (Graviton is cheaper) when deploying to real AWS: docs/EXPERIMENTS.md #6.
+            architecture=lambda_.Architecture.X86_64,
             code=lambda_code(target_dir, target_name),
             handler=lambda_handler(),
             memory_size=memory_size,

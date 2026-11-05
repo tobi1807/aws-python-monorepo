@@ -5,7 +5,7 @@ The orders app takes customer orders over HTTP, stores them in DynamoDB and publ
 ## AWS services
 
 - Amazon API Gateway (HTTP API): `POST /orders` and `GET /orders/{order_id}`, both routed to one Lambda function.
-- AWS Lambda: the `api` function, built with the shared `ServiceFunction` construct (Python 3.13, ARM64, `live` alias, error alarm, CodeDeploy canary in real AWS prod only).
+- AWS Lambda: the `api` function, built with the shared `ServiceFunction` construct (Python 3.13, x86_64, `live` alias, error alarm, CodeDeploy canary in real AWS prod only).
 - Amazon DynamoDB: the `orders` table, partition key `order_id`, on-demand billing, point-in-time recovery in prod only.
 - Amazon EventBridge: publishes `OrderPlaced` to the shared bus.
 - AWS AppConfig: reads the `express_checkout` flag.

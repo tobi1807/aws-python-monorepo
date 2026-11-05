@@ -5,6 +5,10 @@ API renders a template for a sample ``$ctx`` without deploying an API, so the
 templates under ``catalog_infra/resolvers`` are tested as they ship.
 
 Run: docker compose up -d floci && FLOCI_ENDPOINT=http://localhost:4566 pants --tag=floci test apps/catalog::
+
+Finding (experiment 4): Floci doesn't implement ``EvaluateMappingTemplate`` yet,
+so these tests skip with that reason on Floci. They run as-is against real AWS
+or any emulator that adds the API, so keep them: the skip is self-detecting.
 """
 
 from __future__ import annotations
@@ -26,7 +30,14 @@ pytestmark = floci_required()
 def appsync(monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
     fake_credentials(monkeypatch)
     with floci_endpoint(monkeypatch):
-        yield client("appsync")
+        appsync_client = client("appsync")
+        try:
+            appsync_client.evaluate_mapping_template(template="{}", context="{}")
+        except appsync_client.exceptions.ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") == "UnknownOperationException":
+                pytest.skip("this endpoint doesn't implement AppSync EvaluateMappingTemplate")
+            raise
+        yield appsync_client
 
 
 def render(appsync: Any, basename: str, kind: str, context: dict[str, Any]) -> Any:

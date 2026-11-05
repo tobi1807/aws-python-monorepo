@@ -14,7 +14,7 @@ from dataclasses import dataclass
 import aws_cdk as cdk
 from constructs import Construct
 
-DEFAULT_FLOCI_RUNTIME_ENDPOINT = "http://host.docker.internal:4566"
+DEFAULT_FLOCI_RUNTIME_ENDPOINT = "http://floci:4566"  # by name on floci-net
 
 
 @dataclass(frozen=True)

@@ -49,7 +49,7 @@ jobs:
       # Equivalent to: pants --changed-since=$BASE_REF --changed-dependents=transitive lint check test ...
       # (or `::` when pants.toml, lockfiles or workflows changed).
       - name: Lint, typecheck, test (affected)
-        run: tools/ci-pants.sh "$BASE_REF" lint check test --tag=-floci --tag=-e2e
+        run: tools/ci-pants.sh "$BASE_REF" --tag=-floci --tag=-e2e lint check test
 
   # Build artifacts and synthesize the affected CDK apps without deploying:
   # catches broken infra in ~1 minute, before the slower PR-stage deploy finishes.
@@ -88,7 +88,7 @@ jobs:
       - name: Floci integration tests (affected)
         env:
           FLOCI_ENDPOINT: http://localhost:4566
-        run: tools/ci-pants.sh "$BASE_REF" test --tag=floci --tag=-e2e
+        run: tools/ci-pants.sh "$BASE_REF" --tag=floci --tag=-e2e test
 
   # Deploy the affected apps (plus what they depend on) to a throwaway Floci and
   # run their end-to-end tests against it. The Floci container dies with the job,
@@ -97,16 +97,9 @@ jobs:
     needs: plan
     if: needs.plan.outputs.count != '0'
     runs-on: ubuntu-latest
-    services:
-      floci:
-        image: floci/floci:latest
-        ports:
-          - 4566:4566
-        volumes:
-          - /var/run/docker.sock:/var/run/docker.sock
-        env:
-          FLOCI_STORAGE_MODE: memory
-          FLOCI_DEFAULT_REGION: eu-west-2
+    # Floci is started by a script, not as a service container: it needs a
+    # user-defined Docker network shared with the containers it spawns
+    # (ECR registry, Lambda, ECS). See tools/ci-start-floci.sh.
     env:
       STAGE: pr-${{ github.event.number || 'mq' }}
     steps:
@@ -116,19 +109,28 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           deploy-tools: "true"
-      - run: tools/wait-for-floci.sh http://localhost:4566
+      - name: Start Floci
+        run: tools/ci-start-floci.sh
       - name: Deploy affected apps and their dependencies
         run: |
           python3 tools/deploy.py \
             --stage "$STAGE" \
             --affected-since "$BASE_REF" \
             --with-deps \
-            --endpoint http://localhost:4566
+            --endpoint http://localhost:4566 \
+            --runtime-endpoint http://floci:4566
+        # Lambda/ECS containers share Floci's network and reach it by name.
       - name: End-to-end tests for the affected apps
         env:
           AFFECTED_APPS: ${{ needs.plan.outputs.apps }}
           AWS_ENDPOINT_URL: http://localhost:4566
           FLOCI_ENDPOINT: http://localhost:4566
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: eu-west-2
         run: |
           specs="$(jq -r '.[] | "apps/\(.)::"' <<<"$AFFECTED_APPS" | tr '\n' ' ')"
           pants --tag=e2e test $specs
+      - name: Floci logs (on failure)
+        if: failure()
+        run: docker logs floci --tail 300 || true

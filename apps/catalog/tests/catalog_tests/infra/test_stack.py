@@ -33,10 +33,12 @@ def test_table_named_by_stage() -> None:
     )
 
 
-def test_bucket_named_by_stage_and_auto_deleted_outside_prod() -> None:
+def test_bucket_named_by_stage_and_auto_deleted_only_on_aws_ephemeral_stages() -> None:
     dev = synth("pr-42")
     dev.has_resource_properties("AWS::S3::Bucket", {"BucketName": "pr-42-catalog-images"})
-    dev.resource_count_is("Custom::S3AutoDeleteObjects", 1)
+    # Floci: no custom-resource Lambdas (they can't reach Floci's S3).
+    dev.resource_count_is("Custom::S3AutoDeleteObjects", 0)
+    synth("pr-42", target="aws").resource_count_is("Custom::S3AutoDeleteObjects", 1)
 
     prod = synth("prod")
     prod.has_resource_properties("AWS::S3::Bucket", {"BucketName": "prod-catalog-images"})

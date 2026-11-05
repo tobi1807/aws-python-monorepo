@@ -76,9 +76,9 @@ tells you which test layer must cover what once real AWS exists.
 |---|------|--------|----------|
 | 1 | 2026-11-01 | `contracts/fulfilment.py` → fulfilment, notifications · `contracts/orders.py` → orders, fulfilment, invoicing · `cdk_constructs/wiring.py` → 4 apps · pact file → both sides · `runtime/flags.py` → **5 apps, cut to 1 (orders)** after removing testkit's imports of every runtime module | Keep test helpers import-free of optional libs; check fan-out whenever a shared lib grows |
 | 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
-| 6 | 2026-11-01 | Every Lambda zip is ~20 MB (mostly boto3/botocore, which the runtime already ships). Cold start not measured yet | Try excluding boto3 from Lambda zips |
+| 3 | 2026-11-01 | GitHub Actions remote cache is **unusable**: Pants' `experimental-github-actions-cache` provider uses GitHub's legacy cache API, which now returns HTTP 400 for every read/write. CI relies on init-pants' local cache restore | Benchmark S3-backed bazel-remote (or a hosted REAPI cache) as the remote cache |
+| 4 | 2026-11-01 | On GitHub runners with real Floci: integration tests pass for DynamoDB, EventBridge → SQS, SSM, Secrets Manager, S3. CDK deploys **all six apps** (AppSync + VTL resolvers, API Gateway v2, Lambda, Step Functions incl. ECS `.sync`, ECS Fargate, ECR image push, EventBridge, SQS, AppConfig, Secrets Manager, SSM). e2e: deployed orders Lambda → DynamoDB works. Gaps: AppSync `EvaluateMappingTemplate` not implemented; CDK custom-resource Lambdas (e.g. S3 auto-delete) can't reach Floci's S3; ECR needs Floci on a user-defined Docker network + path-style URIs; functions run on the host's CPU architecture | Keep VTL tests self-skipping; no custom resources on Floci; x86_64 builds; Floci via tools/ci-start-floci.sh |
+| 5 | 2026-11-01 | Full PR run (all six apps, via a workflow change) on GitHub-hosted runners: checks 2m40s, synth 1m37s, floci-tests 1m09s, pr-stage 2m59s (deploy of 3 waves 96s + e2e). Jobs run in parallel, so wall-clock ≈ 3–4 min with no remote cache | Well under the 10-min budget; a single-app PR will be faster |
+| 6 | 2026-11-01 | Every Lambda zip is ~20 MB (mostly boto3/botocore, which the runtime already ships). Floci runs functions on the host's architecture, so ARM64 zips (native pydantic-core wheels) fail to import on x86 CI runners | Build x86_64 for now; try excluding boto3; for real AWS consider Graviton via a parametrized arm64 Lambda target |
 | 7 | | | |
 | 8 | 2026-11-01 | 6–23 s per app (wave of 4 in parallel, cold jsii); all six apps build + synth in ~45 s | One CDK app per service holds up |

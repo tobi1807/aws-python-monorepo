@@ -93,12 +93,24 @@ def package_name(app: str) -> str:
     return app.replace("-", "_")
 
 
+# Host port -> Floci container name on the shared `floci-net` network
+# (docker-compose.yml and tools/ci-start-floci.sh).
+LOCAL_FLOCI_CONTAINERS = {4566: "floci", 4567: "floci-prod"}
+
+
 def runtime_endpoint_for(endpoint: str, override: str | None = None) -> str:
-    """How Lambda/ECS containers reach a Floci that this machine reaches at ``endpoint``."""
+    """How Lambda/ECS containers reach a Floci that this machine reaches at ``endpoint``.
+
+    Local Floci runs on the `floci-net` Docker network and spawns functions on
+    it, so they reach Floci by container name on its internal port 4566.
+    """
     if override:
         return override
     parts = urlsplit(endpoint)
     if parts.hostname in LOCAL_HOSTS:
+        container = LOCAL_FLOCI_CONTAINERS.get(parts.port or 4566)
+        if container:
+            return f"http://{container}:4566"
         port = f":{parts.port}" if parts.port else ""
         return f"{parts.scheme}://host.docker.internal{port}"
     return endpoint
@@ -276,6 +288,9 @@ def deploy_env(plan: Plan) -> dict[str, str]:
     if plan.target == "floci" and plan.endpoint:
         env.update(
             AWS_ENDPOINT_URL=plan.endpoint,
+            # cdklocal refuses to run without an explicit S3 endpoint (it uses
+            # path-style S3 against it for asset publishing).
+            AWS_ENDPOINT_URL_S3=plan.endpoint,
             AWS_ACCESS_KEY_ID="test",
             AWS_SECRET_ACCESS_KEY="test",
             AWS_DEFAULT_REGION=REGION,
@@ -330,7 +345,11 @@ def docker_context_files(app: str, root: Path) -> tuple[Path, list[Path]] | None
 
 
 def stage_docker_contexts(plan: Plan) -> list[str]:
-    """Copy Dockerfile + built pexes to ``dist/docker/<app>/`` for CDK's image assets."""
+    """Copy Dockerfile + built pexes to ``dist/docker/<app>/`` for CDK's image assets.
+
+    Pexes keep Pants' layout (``apps.<app>.src.<pkg>/<name>.pex``) so the same
+    Dockerfile works for ``pants package`` (docker_image target) and for CDK.
+    """
     staged = []
     for app in plan.apps:
         found = docker_context_files(app, plan.root)
@@ -344,8 +363,10 @@ def stage_docker_contexts(plan: Plan) -> list[str]:
         else:
             shutil.rmtree(target, ignore_errors=True)
             target.mkdir(parents=True)
-            for source in (dockerfile, *pexes):
-                shutil.copy2(source, target / source.name)
+            shutil.copy2(dockerfile, target / dockerfile.name)
+            for pex in pexes:
+                (target / pex.parent.name).mkdir(exist_ok=True)
+                shutil.copy2(pex, target / pex.parent.name / pex.name)
             log(f"[{app}] staged docker context in dist/docker/{app}/")
         staged.append(app)
     return staged
