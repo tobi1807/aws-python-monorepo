@@ -3,6 +3,8 @@
 Floci is the AWS emulator that stands in for every environment (dev, PR stage, "prod").
 Everything below goes through one script: `tools/floci.sh`.
 
+> Prefer short commands? `just --list` shows wrappers (`just up`, `just deploy`, `just e2e`...). Each is one line calling the scripts below.
+
 ## Prerequisites
 - Docker (Desktop or Engine) running. Floci spawns Lambda/ECS/ECR as real containers via the Docker socket.
 - Node 22 + `npm ci` (CDK CLI), Python 3.13, `pants` (installed via the Pants launcher).
