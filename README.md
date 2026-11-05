@@ -50,7 +50,7 @@ npm ci
 tools/install-hooks.sh                    # pre-push: lint/check/test what you changed
 
 pants test ::                             # everything (Floci tests skip)
-docker compose up -d floci                # local Floci on :4566
+tools/floci.sh up                         # local Floci on :4566 (see docs/LOCAL.md)
 FLOCI_ENDPOINT=http://localhost:4566 pants --tag=floci test ::
 
 python3 tools/deploy.py --stage dev-$USER --all       # deploy everything to local Floci
